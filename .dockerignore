@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+src/generated
+.env
+.env.*
+!.env.docker.example
+npm-debug.log*
+.git
+.gitignore
+README.md
+test
+*.md
+.vscode
+.idea
+.temp
+.tmp

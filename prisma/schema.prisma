@@ -1,0 +1,293 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Better Auth ───────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions              Session[]
+  accounts              Account[]
+  wallets               Wallet[]
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  assets                Asset[]
+  assetTransactions     AssetTransaction[]
+  transactionCategories TransactionCategory[]
+  transactionSubcategories TransactionSubcategory[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+  @@index([identifier])
+}
+
+// ─── Finance domain ────────────────────────────────────────────────────────
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  INITIAL_BALANCE
+  ADJUSTMENT
+}
+
+enum CategoryFlow {
+  INCOME
+  EXPENSE
+}
+
+enum RecurringType {
+  DEBT
+  RECEIVABLE
+}
+
+enum RecurringIntervalUnit {
+  DAY
+  WEEK
+  MONTH
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  color     String   @default("sky")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance               WalletBalance?
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+
+  @@index([userId])
+  @@index([userId, sortOrder])
+  @@map("wallets")
+}
+
+model WalletBalance {
+  walletId  String   @id
+  balance   BigInt   @default(0)
+  updatedAt DateTime @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@map("wallet_balances")
+}
+
+model Transaction {
+  id            String          @id @default(uuid())
+  userId        String
+  walletId      String
+  type          TransactionType
+  amount        BigInt
+  description   String?
+  subcategoryId String?
+  occurredAt    DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet                Wallet                   @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  subcategory           TransactionSubcategory?  @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  recurringExecution    RecurringExecution?
+
+  @@index([userId, occurredAt])
+  @@index([userId, walletId, occurredAt])
+  @@index([walletId, occurredAt])
+  @@index([subcategoryId])
+  @@map("transactions")
+}
+
+model TransactionCategory {
+  id            String                 @id
+  userId        String?
+  name          String
+  flow          CategoryFlow
+  sortOrder     Int                    @default(0)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  user          User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subcategories TransactionSubcategory[]
+
+  @@index([flow, sortOrder])
+  @@index([userId, flow, sortOrder])
+  @@map("transaction_categories")
+}
+
+model TransactionSubcategory {
+  id           String              @id
+  userId       String?
+  categoryId   String
+  name         String
+  sortOrder    Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  user         User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([categoryId, sortOrder])
+  @@index([userId, categoryId])
+  @@map("transaction_subcategories")
+}
+
+model RecurringTransaction {
+  id            String                @id @default(uuid())
+  userId        String
+  walletId      String
+  type          RecurringType
+  amount        BigInt
+  description   String?
+  intervalValue Int
+  intervalUnit  RecurringIntervalUnit
+  nextDueAt     DateTime
+  isActive      Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet     Wallet               @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  executions RecurringExecution[]
+
+  @@index([userId, isActive])
+  @@index([userId, isActive, nextDueAt])
+  @@index([nextDueAt, isActive])
+  @@map("recurring_transactions")
+}
+
+model RecurringExecution {
+  id                     String    @id @default(uuid())
+  recurringTransactionId String
+  transactionId          String?   @unique
+  scheduledAt            DateTime
+  executedAt             DateTime?
+  createdAt              DateTime  @default(now())
+
+  recurringTransaction RecurringTransaction @relation(fields: [recurringTransactionId], references: [id], onDelete: Cascade)
+  transaction          Transaction?           @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([recurringTransactionId])
+  @@map("recurring_executions")
+}
+
+// ─── Assets domain ─────────────────────────────────────────────────────────
+
+enum AssetType {
+  GOLD
+  USD
+  MYR
+  STOCK
+}
+
+enum AssetTransactionType {
+  INITIAL
+  BUY
+  SELL
+  ADJUSTMENT
+}
+
+model Asset {
+  id              String    @id @default(uuid())
+  userId          String
+  type            AssetType
+  name            String
+  symbol          String
+  unit            String
+  quantity        Decimal   @default(0) @db.Decimal(20, 8)
+  avgCostPerUnitIdr Decimal? @db.Decimal(20, 2)
+  pricePerUnitIdr Decimal?  @db.Decimal(20, 2)
+  priceSource     String?
+  marketPriceUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions AssetTransaction[]
+
+  @@unique([userId, symbol])
+  @@index([userId, type])
+  @@map("assets")
+}
+
+model AssetTransaction {
+  id              String               @id @default(uuid())
+  userId          String
+  assetId         String
+  type            AssetTransactionType
+  quantity        Decimal              @db.Decimal(20, 8)
+  pricePerUnitIdr Decimal              @db.Decimal(20, 2)
+  totalValueIdr   BigInt
+  description     String?
+  occurredAt      DateTime             @default(now())
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
+  @@index([assetId, occurredAt])
+  @@map("asset_transactions")
+}
