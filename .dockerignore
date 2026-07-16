@@ -2,6 +2,9 @@ node_modules
 dist
 coverage
 src/generated
+prisma.config.js
+prisma.config.d.ts
+prisma.config.js.map
 .env
 .env.*
 !.env.docker.example

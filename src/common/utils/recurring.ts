@@ -1,5 +1,5 @@
 import { addDays, addMonths, addWeeks } from './date';
-import { RecurringIntervalUnit } from '../../generated/prisma/client';
+import { RecurringIntervalUnit } from '@prisma/client';
 
 export function computeNextDueAt(
   from: Date,

@@ -6,7 +6,7 @@ import {
 import {
   RecurringTransaction,
   RecurringType,
-} from '../generated/prisma/client';
+} from '@prisma/client';
 import { computeNextDueAt } from '../common/utils/recurring';
 import {
   formatAmount,

@@ -14,7 +14,8 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build
+RUN npm run build \
+  && test -f dist/src/main.js
 
 FROM node:22-alpine AS runner
 
@@ -31,6 +32,7 @@ COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
 RUN npm ci --omit=dev \
   && npm install --no-save prisma@7.8.0 \
+  && npx prisma generate \
   && chmod +x docker-entrypoint.sh
 
 COPY --from=builder /app/dist ./dist

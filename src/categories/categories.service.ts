@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { CategoryFlow } from '../generated/prisma/client';
+import { CategoryFlow } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateCategoryDto,

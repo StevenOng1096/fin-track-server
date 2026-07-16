@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Asset, AssetType, Prisma } from '../generated/prisma/client';
+import { Asset, AssetType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const TROY_OUNCE_TO_GRAMS = 31.1034768;

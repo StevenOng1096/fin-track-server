@@ -7,7 +7,7 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator';
-import { AssetType } from '../../generated/prisma/client';
+import { AssetType } from '@prisma/client';
 
 export class CreateAssetDto {
   @IsEnum(AssetType)

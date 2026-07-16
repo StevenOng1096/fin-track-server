@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { CategoryFlow } from '../generated/prisma/client';
+import { CategoryFlow } from '@prisma/client';
 import { CategoriesService } from './categories.service';
 import {
   CreateCategoryDto,

@@ -9,7 +9,7 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator';
-import { AssetTransactionType } from '../../generated/prisma/client';
+import { AssetTransactionType } from '@prisma/client';
 
 export class CreateAssetTransactionDto {
   @IsEnum(AssetTransactionType)

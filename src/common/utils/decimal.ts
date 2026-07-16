@@ -1,4 +1,4 @@
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma } from '@prisma/client';
 
 export function parseQuantity(value: string | number): Prisma.Decimal {
   if (typeof value === 'number') {

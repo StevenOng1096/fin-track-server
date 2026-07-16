@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { CategoryFlow } from '../../generated/prisma/client';
+import { CategoryFlow } from '@prisma/client';
 
 export class CreateCategoryDto {
   @IsString()

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { TransactionType } from '../generated/prisma/client';
+import { TransactionType } from '@prisma/client';
 import { BalanceService } from '../balance/balance.service';
 import {
   formatAmount,

@@ -10,7 +10,7 @@ import {
   AssetTransactionType,
   AssetType,
   Prisma,
-} from '../generated/prisma/client';
+} from '@prisma/client';
 import { formatAmount, formatSignedAmount } from '../common/utils/money';
 import {
   computeCostBasisIdr,

@@ -14,7 +14,7 @@ import {
 import {
   RecurringIntervalUnit,
   RecurringType,
-} from '../../generated/prisma/client';
+} from '@prisma/client';
 
 export class CreateRecurringDto {
   @IsUUID()

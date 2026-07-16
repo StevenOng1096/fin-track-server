@@ -5,7 +5,7 @@ import {
   PrismaClient,
   Transaction,
   TransactionType,
-} from '../generated/prisma/client';
+} from '@prisma/client';
 import { BalanceService } from '../balance/balance.service';
 import {
   formatAmount,
