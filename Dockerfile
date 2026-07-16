@@ -4,7 +4,7 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache openssl postgresql16-client
+RUN apk add --no-cache openssl postgresql17-client
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
@@ -22,7 +22,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache openssl postgresql16-client
+RUN apk add --no-cache openssl postgresql17-client
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
