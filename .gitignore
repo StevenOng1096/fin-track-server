@@ -64,3 +64,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /backups/*.dump
 /backups/*.sql
 /backups/*.backup
+/backups/cron/
+/logs/
