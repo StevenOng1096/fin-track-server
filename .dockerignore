@@ -8,6 +8,8 @@ prisma.config.js.map
 .env
 .env.*
 !.env.docker.example
+portofolio-tracker-service-acc-key.json
+*.json.key
 npm-debug.log*
 .git
 .gitignore

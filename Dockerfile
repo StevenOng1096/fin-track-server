@@ -14,7 +14,9 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build \
+# Small VPS often OOM during tsc; cap heap and use a lighter tsconfig for Docker builds.
+ENV NODE_OPTIONS=--max-old-space-size=2048
+RUN npx nest build --path tsconfig.docker.json \
   && test -f dist/src/main.js
 
 FROM node:22-alpine AS runner
