@@ -40,9 +40,13 @@ services:
       PG_RESTORE_FILE: ${PG_RESTORE_FILE:-}
       PG_RESTORE_FORCE: ${PG_RESTORE_FORCE:-false}
       PG_RESTORE_STATE_DIR: /app/state
+      GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
+      GOOGLE_SERVICE_ACCOUNT_KEY_FILE: /app/secrets/google-service-account.json
+      GOOGLE_SHEET_RANGE: ${GOOGLE_SHEET_RANGE:-AssetPrices!A:D}
     volumes:
       - ./backups:/app/backups:ro
       - restore_state:/app/state
+      - ./portofolio-tracker-service-acc-key.json:/app/secrets/google-service-account.json:ro
     healthcheck:
       test:
         [

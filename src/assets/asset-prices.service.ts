@@ -1,23 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Asset, AssetType, Prisma } from '@prisma/client';
+import { Asset, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  getSheetSymbolForAsset,
+  GoogleSheetService,
+} from './google-sheet.service';
 
-const TROY_OUNCE_TO_GRAMS = 31.1034768;
-const CACHE_TTL_MS = 60 * 60 * 1000;
-const REQUEST_TIMEOUT_MS = 5000;
 const STALE_AFTER_MS = 60 * 60 * 1000;
-
-type CachedQuote = {
-  price: number;
-  fetchedAt: number;
-};
 
 @Injectable()
 export class AssetPricesService {
   private readonly logger = new Logger(AssetPricesService.name);
-  private readonly quoteCache = new Map<string, CachedQuote>();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly googleSheetService: GoogleSheetService,
+  ) {}
 
   scheduleStaleRefresh(userId: string): void {
     void this.refreshStalePrices(userId).catch((error) => {
@@ -35,7 +33,7 @@ export class AssetPricesService {
 
     const targets = assets.filter((asset) => {
       if (force) {
-        return true;
+        return asset.priceSource !== 'manual';
       }
 
       if (asset.priceSource === 'manual') {
@@ -45,21 +43,39 @@ export class AssetPricesService {
       return this.isStale(asset);
     });
 
+    if (targets.length === 0) {
+      return 0;
+    }
+
+    let quoteMap: Map<
+      string,
+      { priceIdr: number; updatedAt: Date | null }
+    >;
+
+    try {
+      quoteMap = await this.googleSheetService.getQuoteMap(force);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to load Google Sheet prices: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      return 0;
+    }
+
     let updated = 0;
 
     for (const asset of targets) {
       try {
-        const price = await this.fetchMarketPriceForAsset(asset);
-        if (!price) {
+        const quote = this.lookupQuoteForAsset(asset, quoteMap);
+        if (!quote) {
           continue;
         }
 
         await this.prisma.asset.update({
           where: { id: asset.id },
           data: {
-            pricePerUnitIdr: price,
-            priceSource: 'yahoo_finance',
-            marketPriceUpdatedAt: new Date(),
+            pricePerUnitIdr: new Prisma.Decimal(quote.priceIdr.toFixed(2)),
+            priceSource: 'google_sheets',
+            marketPriceUpdatedAt: quote.updatedAt ?? new Date(),
           },
         });
         updated += 1;
@@ -73,85 +89,31 @@ export class AssetPricesService {
     return updated;
   }
 
+  private lookupQuoteForAsset(
+    asset: Asset,
+    quoteMap: Map<string, { priceIdr: number; updatedAt: Date | null }>,
+  ): { priceIdr: number; updatedAt: Date | null } | null {
+    const sheetSymbol = getSheetSymbolForAsset(asset.type, asset.symbol);
+    if (!sheetSymbol) {
+      return null;
+    }
+
+    const quote = quoteMap.get(sheetSymbol);
+    if (!quote) {
+      this.logger.warn(
+        `No sheet row for ${asset.symbol} (expected symbol ${sheetSymbol})`,
+      );
+      return null;
+    }
+
+    return quote;
+  }
+
   private isStale(asset: Asset): boolean {
     if (!asset.marketPriceUpdatedAt) {
       return true;
     }
 
     return Date.now() - asset.marketPriceUpdatedAt.getTime() > STALE_AFTER_MS;
-  }
-
-  private async fetchMarketPriceForAsset(
-    asset: Asset,
-  ): Promise<Prisma.Decimal | null> {
-    switch (asset.type) {
-      case AssetType.STOCK:
-        return new Prisma.Decimal(
-          (await this.fetchYahooQuote(`${asset.symbol}.JK`)).toFixed(2),
-        );
-      case AssetType.USD:
-        return new Prisma.Decimal(
-          (await this.fetchYahooQuote('USDIDR=X')).toFixed(2),
-        );
-      case AssetType.MYR:
-        return new Prisma.Decimal(
-          (await this.fetchYahooQuote('MYRIDR=X')).toFixed(2),
-        );
-      case AssetType.GOLD: {
-        const [goldUsdPerOz, usdIdr] = await Promise.all([
-          this.fetchYahooQuote('GC=F'),
-          this.fetchYahooQuote('USDIDR=X'),
-        ]);
-        const idrPerGram = (goldUsdPerOz / TROY_OUNCE_TO_GRAMS) * usdIdr;
-        return new Prisma.Decimal(idrPerGram.toFixed(2));
-      }
-      default:
-        return null;
-    }
-  }
-
-  private async fetchYahooQuote(symbol: string): Promise<number> {
-    const cached = this.quoteCache.get(symbol);
-    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-      return cached.price;
-    }
-
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (compatible; FinanceTracker/1.0; +https://localhost)',
-        },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Yahoo Finance returned ${response.status}`);
-      }
-
-      const payload = (await response.json()) as {
-        chart?: {
-          result?: Array<{
-            meta?: {
-              regularMarketPrice?: number;
-            };
-          }>;
-        };
-      };
-
-      const price = payload.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
-        throw new Error(`No market price returned for ${symbol}`);
-      }
-
-      this.quoteCache.set(symbol, { price, fetchedAt: Date.now() });
-      return price;
-    } finally {
-      clearTimeout(timeout);
-    }
   }
 }
