@@ -43,6 +43,8 @@ services:
       GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
       GOOGLE_SERVICE_ACCOUNT_KEY_FILE: /app/secrets/google-service-account.json
       GOOGLE_SHEET_RANGE: ${GOOGLE_SHEET_RANGE:-AssetPrices!A:D}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
     volumes:
       - ./backups:/app/backups:ro
       - restore_state:/app/state

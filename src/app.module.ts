@@ -11,6 +11,7 @@ import { WalletsModule } from './wallets/wallets.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AssetsModule } from './assets/assets.module';
 import { CategoriesModule } from './categories/categories.module';
+import { AuthFeaturesModule } from './auth/auth-features.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CategoriesModule } from './categories/categories.module';
       },
     }),
     PrismaModule,
+    AuthFeaturesModule,
     WalletsModule,
     TransactionsModule,
     RecurringModule,

@@ -18,6 +18,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.account;
   }
 
+  get verification() {
+    return this.prisma.verification;
+  }
+
   get wallet() {
     return this.prisma.wallet;
   }

@@ -3,6 +3,8 @@ import { expo } from '@better-auth/expo';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { getAllowedOrigins } from './common/utils/cors';
+import { sendPasswordResetEmail } from './email/send-password-reset-email';
+import { sendVerificationEmail } from './email/send-verification-email';
 import { getPrismaClient } from './prisma/prisma-client';
 
 const MOBILE_APP_SCHEME =
@@ -34,9 +36,33 @@ export const auth = betterAuth({
     provider: 'postgresql',
   }),
   plugins: [expo()],
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: false,
+    autoSignInAfterVerification: true,
+    expiresIn: 3600,
+    sendVerificationEmail: async ({ user, url }) => {
+      void sendVerificationEmail(user.email, url).catch((error) => {
+        console.error(
+          `Failed to send verification email to ${user.email}:`,
+          error instanceof Error ? error.message : error,
+        );
+      });
+    },
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    requireEmailVerification: true,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      void sendPasswordResetEmail(user.email, url).catch((error) => {
+        console.error(
+          `Failed to send password reset email to ${user.email}:`,
+          error instanceof Error ? error.message : error,
+        );
+      });
+    },
   },
   trustedOrigins: [
     ...getAllowedOrigins(),
