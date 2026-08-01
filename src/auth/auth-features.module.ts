@@ -6,6 +6,7 @@ import { EmailVerificationService } from './email-verification.service';
 import { EmailVerifiedGuard } from './email-verified.guard';
 import { PasswordResetController } from './password-reset.controller';
 import { PasswordResetService } from './password-reset.service';
+import { SessionCleanupService } from './session-cleanup.service';
 import { VerificationRateLimitService } from './verification-rate-limit.service';
 
 @Module({
@@ -19,6 +20,7 @@ import { VerificationRateLimitService } from './verification-rate-limit.service'
     PasswordResetService,
     EmailVerificationService,
     VerificationRateLimitService,
+    SessionCleanupService,
     {
       provide: APP_GUARD,
       useClass: EmailVerifiedGuard,

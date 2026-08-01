@@ -70,6 +70,10 @@ export const auth = betterAuth({
   ],
   basePath: '/api/auth',
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+  session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // extend expiry at most once per day
+  },
   advanced: {
     useSecureCookies: true,
     defaultCookieAttributes: {
