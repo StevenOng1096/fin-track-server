@@ -15,7 +15,7 @@ import { formatAmount, formatSignedAmount } from '../common/utils/money';
 import {
   computeCostBasisIdr,
   computeMarketValueIdr,
-  decimalToBigIntIdr,
+  computeTotalValueIdr,
   formatDecimal,
   formatPriceIdr,
   nextAverageCost,
@@ -83,7 +83,7 @@ export class AssetsService {
               type: AssetTransactionType.INITIAL,
               quantity: initialQuantity,
               pricePerUnitIdr: initialPricePerUnitIdr,
-              totalValueIdr: decimalToBigIntIdr(
+              totalValueIdr: computeTotalValueIdr(
                 initialQuantity,
                 initialPricePerUnitIdr,
               ),
@@ -332,7 +332,7 @@ export class AssetsService {
       return {
         recordedQuantity: signedDelta.abs(),
         pricePerUnitIdr,
-        totalValueIdr: decimalToBigIntIdr(signedDelta.abs(), pricePerUnitIdr),
+        totalValueIdr: computeTotalValueIdr(signedDelta.abs(), pricePerUnitIdr),
         nextQuantity: targetQuantity,
         nextAvgCost: asset.avgCostPerUnitIdr,
       };
@@ -348,7 +348,7 @@ export class AssetsService {
     }
 
     const pricePerUnitIdr = parsePriceIdr(dto.pricePerUnitIdr);
-    const totalValueIdr = decimalToBigIntIdr(quantity, pricePerUnitIdr);
+    const totalValueIdr = computeTotalValueIdr(quantity, pricePerUnitIdr);
 
     if (dto.type === AssetTransactionType.BUY) {
       return {
@@ -411,7 +411,9 @@ export class AssetsService {
       priceVsBuyPercent,
       marketValueIdr: formatAmount(marketValueIdr),
       costBasisIdr: formatAmount(costBasisIdr),
-      unrealizedPnlIdr: formatSignedAmount(marketValueIdr - costBasisIdr),
+      unrealizedPnlIdr: formatSignedAmount(
+        marketValueIdr.sub(costBasisIdr),
+      ),
       createdAt: asset.createdAt,
       updatedAt: asset.updatedAt,
     };

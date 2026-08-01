@@ -10,6 +10,10 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { AssetTransactionType } from '@prisma/client';
+import {
+  IDR_AMOUNT_REGEX,
+  IDR_NON_NEGATIVE_AMOUNT_MESSAGE,
+} from '../../common/utils/money';
 
 export class CreateAssetTransactionDto {
   @IsEnum(AssetTransactionType)
@@ -30,9 +34,7 @@ export class CreateAssetTransactionDto {
   @ValidateIf((dto) => dto.type !== AssetTransactionType.ADJUSTMENT)
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d+(\.\d{1,2})?$/, {
-    message: 'Price per unit must be a non-negative IDR amount with up to 2 decimals',
-  })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_NON_NEGATIVE_AMOUNT_MESSAGE })
   pricePerUnitIdr?: string;
 
   @IsOptional()

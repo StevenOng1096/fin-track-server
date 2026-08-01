@@ -12,6 +12,8 @@ import {
   parseAmount,
   parseNonNegativeAmount,
   transactionDelta,
+  toIdrMoneyFields,
+  ZERO_IDR,
 } from '../common/utils/money';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletsService } from '../wallets/wallets.service';
@@ -134,11 +136,11 @@ export class TransactionsService {
       this.prisma.transaction.count({ where }),
     ]);
 
-    let income = 0n;
-    let expense = 0n;
+    let income = ZERO_IDR;
+    let expense = ZERO_IDR;
 
     for (const row of grouped) {
-      const total = this.rawSumToBigInt(row._sum.amount);
+      const total = this.rawSumToDecimal(row._sum.amount);
       if (row.type === TransactionType.INCOME) {
         income = total;
       } else if (row.type === TransactionType.EXPENSE) {
@@ -149,7 +151,7 @@ export class TransactionsService {
     return {
       income: formatAmount(income),
       expense: formatAmount(expense),
-      net: formatAmount(income - expense),
+      net: formatAmount(income.sub(expense)),
       transactionCount,
     };
   }
@@ -160,12 +162,12 @@ export class TransactionsService {
     const start = new Date(now.getFullYear(), now.getMonth() - (safeMonths - 1), 1);
 
     const rows = await this.prisma.$queryRaw<
-      Array<{ month_key: string; type: string; total: bigint }>
+      Array<{ month_key: string; type: string; total: Prisma.Decimal }>
     >`
       SELECT
         to_char(date_trunc('month', "occurredAt"), 'YYYY-MM') AS month_key,
         type::text AS type,
-        SUM(amount)::bigint AS total
+        SUM(amount) AS total
       FROM transactions
       WHERE "userId" = ${userId} AND "occurredAt" >= ${start}
       GROUP BY date_trunc('month', "occurredAt"), type
@@ -174,15 +176,15 @@ export class TransactionsService {
 
     const buckets = new Map<
       string,
-      { income: bigint; expense: bigint; label: string }
+      { income: Prisma.Decimal; expense: Prisma.Decimal; label: string }
     >();
 
     for (let index = 0; index < safeMonths; index += 1) {
       const date = new Date(now.getFullYear(), now.getMonth() - (safeMonths - 1 - index), 1);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       buckets.set(key, {
-        income: 0n,
-        expense: 0n,
+        income: ZERO_IDR,
+        expense: ZERO_IDR,
         label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
       });
     }
@@ -191,12 +193,12 @@ export class TransactionsService {
       const bucket = buckets.get(row.month_key);
       if (!bucket) continue;
 
-      const total = this.rawSumToBigInt(row.total);
+      const total = this.rawSumToDecimal(row.total);
 
       if (row.type === TransactionType.INCOME) {
-        bucket.income += total;
+        bucket.income = bucket.income.add(total);
       } else if (row.type === TransactionType.EXPENSE) {
-        bucket.expense += total;
+        bucket.expense = bucket.expense.add(total);
       }
     }
 
@@ -206,7 +208,7 @@ export class TransactionsService {
         label: values.label,
         income: formatAmount(values.income),
         expense: formatAmount(values.expense),
-        net: formatAmount(values.income - values.expense),
+        net: formatAmount(values.income.sub(values.expense)),
       })),
     };
   }
@@ -222,7 +224,7 @@ export class TransactionsService {
         type: string;
         category_id: string | null;
         category_name: string | null;
-        total: bigint;
+        total: Prisma.Decimal;
       }>
     >`
       SELECT
@@ -230,7 +232,7 @@ export class TransactionsService {
         t.type::text AS type,
         tc.id AS category_id,
         tc.name AS category_name,
-        SUM(t.amount)::bigint AS total
+        SUM(t.amount) AS total
       FROM transactions t
       LEFT JOIN transaction_subcategories ts ON t."subcategoryId" = ts.id
       LEFT JOIN transaction_categories tc ON ts."categoryId" = tc.id
@@ -243,7 +245,7 @@ export class TransactionsService {
 
     type CategoryBucket = Map<
       string,
-      { categoryId: string; name: string; amount: bigint }
+      { categoryId: string; name: string; amount: Prisma.Decimal }
     >;
 
     const monthBuckets = new Map<
@@ -269,11 +271,11 @@ export class TransactionsService {
         row.type === TransactionType.INCOME ? bucket.income : bucket.expense;
       const categoryId = row.category_id ?? 'uncategorized';
       const categoryName = row.category_name ?? 'Uncategorized';
-      const amount = this.rawSumToBigInt(row.total);
+      const amount = this.rawSumToDecimal(row.total);
       const existing = target.get(categoryId);
 
       if (existing) {
-        existing.amount += amount;
+        existing.amount = existing.amount.add(amount);
       } else {
         target.set(categoryId, { categoryId, name: categoryName, amount });
       }
@@ -281,7 +283,7 @@ export class TransactionsService {
 
     const toCategoryList = (map: CategoryBucket) =>
       [...map.values()]
-        .sort((a, b) => (a.amount > b.amount ? -1 : a.amount < b.amount ? 1 : 0))
+        .sort((a, b) => b.amount.comparedTo(a.amount))
         .map((item) => ({
           categoryId: item.categoryId,
           name: item.name,
@@ -362,14 +364,18 @@ export class TransactionsService {
       const financialChanged =
         walletChanged ||
         nextType !== existing.type ||
-        nextAmount !== existing.amount;
+        !nextAmount.eq(existing.amount);
 
       if (financialChanged) {
         if (walletChanged) {
-          await this.balanceService.applyDelta(tx, existing.walletId, -oldDelta);
+          await this.balanceService.applyDelta(tx, existing.walletId, oldDelta.neg());
           await this.balanceService.applyDelta(tx, nextWalletId, newDelta);
         } else {
-          await this.balanceService.applyDelta(tx, existing.walletId, newDelta - oldDelta);
+          await this.balanceService.applyDelta(
+            tx,
+            existing.walletId,
+            newDelta.sub(oldDelta),
+          );
         }
       }
 
@@ -406,7 +412,7 @@ export class TransactionsService {
       }
 
       const delta = transactionDelta(existing.type, existing.amount);
-      await this.balanceService.applyDelta(tx, existing.walletId, -delta);
+      await this.balanceService.applyDelta(tx, existing.walletId, delta.neg());
       await tx.transaction.delete({ where: { id: transactionId } });
     });
 
@@ -419,7 +425,7 @@ export class TransactionsService {
       userId: string;
       walletId: string;
       type: TransactionType;
-      amount: bigint;
+      amount: Prisma.Decimal;
       description?: string | null;
       occurredAt?: Date;
     },
@@ -478,14 +484,14 @@ export class TransactionsService {
     };
   }
 
-  private rawSumToBigInt(value: unknown): bigint {
-    if (typeof value === 'bigint') {
+  private rawSumToDecimal(value: unknown): Prisma.Decimal {
+    if (value instanceof Prisma.Decimal) {
       return value;
     }
     if (value === null || value === undefined) {
-      return 0n;
+      return ZERO_IDR;
     }
-    return BigInt(String(value));
+    return new Prisma.Decimal(String(value));
   }
 
   private async resolveCreateAmountAndDelta(
@@ -493,7 +499,7 @@ export class TransactionsService {
     type: TransactionType,
     amountInput?: string,
     targetBalanceInput?: string,
-  ): Promise<{ amount: bigint; delta: bigint }> {
+  ): Promise<{ amount: Prisma.Decimal; delta: Prisma.Decimal }> {
     if (type === TransactionType.ADJUSTMENT) {
       if (!targetBalanceInput) {
         throw new BadRequestException('Target balance is required for adjustments');
@@ -504,9 +510,9 @@ export class TransactionsService {
         this.prisma,
         walletId,
       );
-      const signedDelta = targetBalance - currentBalance;
+      const signedDelta = targetBalance.sub(currentBalance);
 
-      if (signedDelta === 0n) {
+      if (signedDelta.eq(0)) {
         throw new BadRequestException(
           'Target balance matches the current wallet balance',
         );
@@ -601,7 +607,7 @@ export class TransactionsService {
   private toResponse(transaction: TransactionWithSubcategory) {
     const isAdjustment = transaction.type === TransactionType.ADJUSTMENT;
     const adjustmentDirection = isAdjustment
-      ? transaction.amount > 0n
+      ? transaction.amount.gt(0)
         ? 'INCREASE'
         : 'DECREASE'
       : null;
@@ -610,9 +616,8 @@ export class TransactionsService {
       id: transaction.id,
       walletId: transaction.walletId,
       type: transaction.type,
-      amount: formatAmount(transaction.amount),
+      ...toIdrMoneyFields(transaction.amount),
       adjustmentDirection,
-      currency: 'IDR',
       description: transaction.description,
       category: transaction.subcategory
         ? {

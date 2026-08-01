@@ -15,6 +15,10 @@ import {
   RecurringIntervalUnit,
   RecurringType,
 } from '@prisma/client';
+import {
+  IDR_AMOUNT_REGEX,
+  IDR_POSITIVE_AMOUNT_MESSAGE,
+} from '../../common/utils/money';
 
 export class CreateRecurringDto {
   @IsUUID()
@@ -24,7 +28,7 @@ export class CreateRecurringDto {
   type: RecurringType;
 
   @IsString()
-  @Matches(/^\d+$/, { message: 'Amount must be a positive integer in IDR' })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_POSITIVE_AMOUNT_MESSAGE })
   amount: string;
 
   @IsOptional()
@@ -55,7 +59,7 @@ export class UpdateRecurringDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\d+$/, { message: 'Amount must be a positive integer in IDR' })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_POSITIVE_AMOUNT_MESSAGE })
   amount?: string;
 
   @IsOptional()

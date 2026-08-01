@@ -12,6 +12,7 @@ import {
   formatAmount,
   parseAmount,
   recurringToTransactionType,
+  toIdrMoneyFields,
 } from '../common/utils/money';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsService } from '../transactions/transactions.service';
@@ -168,8 +169,7 @@ export class RecurringService {
           id: transaction.id,
           walletId: transaction.walletId,
           type: transaction.type,
-          amount: formatAmount(transaction.amount),
-          currency: 'IDR',
+          ...toIdrMoneyFields(transaction.amount),
           description: transaction.description,
           occurredAt: transaction.occurredAt,
         },
@@ -194,8 +194,7 @@ export class RecurringService {
       id: recurring.id,
       walletId: recurring.walletId,
       type: recurring.type,
-      amount: formatAmount(recurring.amount),
-      currency: 'IDR',
+      ...toIdrMoneyFields(recurring.amount),
       description: recurring.description,
       intervalValue: recurring.intervalValue,
       intervalUnit: recurring.intervalUnit,

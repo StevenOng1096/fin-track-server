@@ -13,6 +13,10 @@ import {
   DEFAULT_WALLET_COLOR,
   WALLET_COLOR_KEYS,
 } from '../wallet-colors';
+import {
+  IDR_AMOUNT_REGEX,
+  IDR_NON_NEGATIVE_AMOUNT_MESSAGE,
+} from '../../common/utils/money';
 
 export class CreateWalletDto {
   @IsString()
@@ -27,7 +31,7 @@ export class CreateWalletDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\d+$/, { message: 'Initial balance must be a non-negative integer in IDR' })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_NON_NEGATIVE_AMOUNT_MESSAGE })
   initialBalance?: string;
 }
 

@@ -1,67 +1,136 @@
-export function parseAmount(value: string | number | bigint): bigint {
-  if (typeof value === 'bigint') {
-    if (value <= 0n) {
+import { Prisma } from '@prisma/client';
+
+export const IDR_DECIMALS = 2;
+export const IDR_AMOUNT_REGEX = /^\d+(\.\d+)?$/;
+export const IDR_POSITIVE_AMOUNT_REGEX = /^\d+(\.\d{1,2})?$/;
+export const IDR_POSITIVE_AMOUNT_MESSAGE =
+  'Amount must be a positive IDR value with up to 2 decimals';
+export const IDR_NON_NEGATIVE_AMOUNT_MESSAGE =
+  'Amount must be a non-negative IDR value with up to 2 decimals';
+export const CURRENCY_IDR = 'IDR';
+
+export const ZERO_IDR = new Prisma.Decimal(0);
+
+/** Normalize user/API decimal input (comma or dot) to a dot-decimal string. */
+export function normalizeIdrDecimalInput(value: string): string {
+  return value.trim().replace(',', '.');
+}
+
+/** Truncate extra decimal digits (495.042134 → 495.04). */
+function truncateToTwoDecimals(normalized: string): string {
+  const [wholePart = '0', fractionPart = ''] = normalized.split('.');
+  const fraction = (fractionPart + '00').slice(0, IDR_DECIMALS);
+  return fraction.length > 0 ? `${wholePart}.${fraction}` : wholePart;
+}
+
+function normalizeAmountDecimal(value: Prisma.Decimal): Prisma.Decimal {
+  return new Prisma.Decimal(value.toFixed(IDR_DECIMALS));
+}
+
+export function parseAmount(
+  value: string | number | Prisma.Decimal,
+): Prisma.Decimal {
+  if (value instanceof Prisma.Decimal) {
+    const normalized = normalizeAmountDecimal(value);
+    if (normalized.lte(0)) {
       throw new Error('Amount must be positive');
     }
-    return value;
+    return normalized;
   }
 
   if (typeof value === 'number') {
-    if (!Number.isInteger(value) || value <= 0) {
-      throw new Error('Amount must be a positive integer');
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(IDR_POSITIVE_AMOUNT_MESSAGE);
     }
-    return BigInt(value);
+    const normalized = normalizeAmountDecimal(new Prisma.Decimal(value));
+    if (normalized.lte(0)) {
+      throw new Error('Amount must be positive');
+    }
+    return normalized;
   }
 
-  const normalized = value.trim();
-  if (!/^\d+$/.test(normalized)) {
-    throw new Error('Amount must be a positive integer in IDR');
+  const normalized = normalizeIdrDecimalInput(value);
+  if (!IDR_AMOUNT_REGEX.test(normalized)) {
+    throw new Error(IDR_POSITIVE_AMOUNT_MESSAGE);
   }
 
-  return BigInt(normalized);
+  const truncated = truncateToTwoDecimals(normalized);
+  const amount = new Prisma.Decimal(truncated);
+  if (amount.lte(0)) {
+    throw new Error('Amount must be positive');
+  }
+
+  return amount;
 }
 
-export function parseNonNegativeAmount(value: string | number | bigint): bigint {
-  if (typeof value === 'bigint') {
-    if (value < 0n) {
+export function parseNonNegativeAmount(
+  value: string | number | Prisma.Decimal,
+): Prisma.Decimal {
+  if (value instanceof Prisma.Decimal) {
+    if (value.lt(0)) {
       throw new Error('Amount cannot be negative');
     }
-    return value;
+    return normalizeAmountDecimal(value);
   }
 
   if (typeof value === 'number') {
-    if (!Number.isInteger(value) || value < 0) {
-      throw new Error('Amount must be a non-negative integer');
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(IDR_NON_NEGATIVE_AMOUNT_MESSAGE);
     }
-    return BigInt(value);
+    return normalizeAmountDecimal(new Prisma.Decimal(value));
   }
 
-  const normalized = value.trim();
-  if (!/^\d+$/.test(normalized)) {
-    throw new Error('Amount must be a non-negative integer in IDR');
+  const normalized = normalizeIdrDecimalInput(value);
+  if (!IDR_AMOUNT_REGEX.test(normalized)) {
+    throw new Error(IDR_NON_NEGATIVE_AMOUNT_MESSAGE);
   }
 
-  return BigInt(normalized);
+  const truncated = truncateToTwoDecimals(normalized);
+  const amount = new Prisma.Decimal(truncated);
+  if (amount.lt(0)) {
+    throw new Error('Amount cannot be negative');
+  }
+
+  return amount;
 }
 
-export function formatAmount(amount: bigint): string {
-  return amount < 0n ? (-amount).toString() : amount.toString();
+/** Format a stored IDR amount as a dot-decimal string with 2 fraction digits. */
+export function formatAmount(
+  value: Prisma.Decimal | null | undefined,
+): string {
+  if (value === null || value === undefined) {
+    return '0.00';
+  }
+
+  return value.toFixed(IDR_DECIMALS);
 }
 
-export function formatSignedAmount(amount: bigint): string {
-  return amount.toString();
+export function formatSignedAmount(value: Prisma.Decimal): string {
+  if (value.eq(0)) {
+    return formatAmount(value);
+  }
+
+  const prefix = value.gt(0) ? '+' : '-';
+  return `${prefix}${formatAmount(value.abs())}`;
+}
+
+export function toIdrMoneyFields(value: Prisma.Decimal) {
+  return {
+    amount: formatAmount(value),
+    currency: CURRENCY_IDR,
+  };
 }
 
 export function transactionDelta(
   type: 'INCOME' | 'EXPENSE' | 'INITIAL_BALANCE' | 'ADJUSTMENT',
-  amount: bigint,
-): bigint {
+  amount: Prisma.Decimal,
+): Prisma.Decimal {
   switch (type) {
     case 'INCOME':
     case 'INITIAL_BALANCE':
       return amount;
     case 'EXPENSE':
-      return -amount;
+      return amount.neg();
     case 'ADJUSTMENT':
       return amount;
     default:
@@ -69,8 +138,8 @@ export function transactionDelta(
   }
 }
 
-export function isAdjustmentIncrease(amount: bigint): boolean {
-  return amount > 0n;
+export function isAdjustmentIncrease(amount: Prisma.Decimal): boolean {
+  return amount.gt(0);
 }
 
 export function recurringToTransactionType(

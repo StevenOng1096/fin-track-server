@@ -1,4 +1,10 @@
 import { Prisma } from '@prisma/client';
+import {
+  IDR_AMOUNT_REGEX,
+  IDR_NON_NEGATIVE_AMOUNT_MESSAGE,
+  ZERO_IDR,
+  normalizeIdrDecimalInput,
+} from './money';
 
 export function parseQuantity(value: string | number): Prisma.Decimal {
   if (typeof value === 'number') {
@@ -8,7 +14,7 @@ export function parseQuantity(value: string | number): Prisma.Decimal {
     return new Prisma.Decimal(value);
   }
 
-  const normalized = value.trim().replace(',', '.');
+  const normalized = normalizeIdrDecimalInput(value);
   if (!/^\d+(\.\d+)?$/.test(normalized)) {
     throw new Error('Quantity must be a non-negative decimal number');
   }
@@ -16,12 +22,14 @@ export function parseQuantity(value: string | number): Prisma.Decimal {
   return new Prisma.Decimal(normalized);
 }
 
-export function parsePriceIdr(value: string | number | bigint): Prisma.Decimal {
-  if (typeof value === 'bigint') {
-    if (value < 0n) {
+export function parsePriceIdr(
+  value: string | number | Prisma.Decimal,
+): Prisma.Decimal {
+  if (value instanceof Prisma.Decimal) {
+    if (value.lt(0)) {
       throw new Error('Price must be non-negative');
     }
-    return new Prisma.Decimal(value.toString());
+    return normalizePriceDecimal(value);
   }
 
   if (typeof value === 'number') {
@@ -31,9 +39,9 @@ export function parsePriceIdr(value: string | number | bigint): Prisma.Decimal {
     return normalizePriceDecimal(new Prisma.Decimal(value));
   }
 
-  const normalized = value.trim().replace(',', '.');
-  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
-    throw new Error('Price must be a non-negative IDR amount with up to 2 decimals');
+  const normalized = normalizeIdrDecimalInput(value);
+  if (!IDR_AMOUNT_REGEX.test(normalized)) {
+    throw new Error(IDR_NON_NEGATIVE_AMOUNT_MESSAGE);
   }
 
   return normalizePriceDecimal(new Prisma.Decimal(normalized));
@@ -59,34 +67,33 @@ function normalizePriceDecimal(value: Prisma.Decimal): Prisma.Decimal {
   return new Prisma.Decimal(value.toFixed(2));
 }
 
-export function decimalToBigIntIdr(
+export function computeTotalValueIdr(
   quantity: Prisma.Decimal,
   pricePerUnitIdr: Prisma.Decimal,
-): bigint {
-  const total = quantity.mul(pricePerUnitIdr);
-  return BigInt(total.toFixed(0));
+): Prisma.Decimal {
+  return normalizePriceDecimal(quantity.mul(pricePerUnitIdr));
 }
 
 export function computeMarketValueIdr(
   quantity: Prisma.Decimal,
   pricePerUnitIdr: Prisma.Decimal | null,
-): bigint {
+): Prisma.Decimal {
   if (!pricePerUnitIdr) {
-    return 0n;
+    return ZERO_IDR;
   }
 
-  return decimalToBigIntIdr(quantity, pricePerUnitIdr);
+  return computeTotalValueIdr(quantity, pricePerUnitIdr);
 }
 
 export function computeCostBasisIdr(
   quantity: Prisma.Decimal,
   avgCostPerUnitIdr: Prisma.Decimal | null,
-): bigint {
+): Prisma.Decimal {
   if (!avgCostPerUnitIdr) {
-    return 0n;
+    return ZERO_IDR;
   }
 
-  return decimalToBigIntIdr(quantity, avgCostPerUnitIdr);
+  return computeTotalValueIdr(quantity, avgCostPerUnitIdr);
 }
 
 export function nextAverageCost(
@@ -99,7 +106,7 @@ export function nextAverageCost(
     return addedPrice;
   }
 
-  const existingAvg = currentAvg ?? new Prisma.Decimal(0);
+  const existingAvg = currentAvg ?? ZERO_IDR;
   const totalCost = currentQty.mul(existingAvg).add(addedQty.mul(addedPrice));
   const totalQty = currentQty.add(addedQty);
 

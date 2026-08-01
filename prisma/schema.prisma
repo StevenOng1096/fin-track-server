@@ -126,7 +126,7 @@ model Wallet {
 
 model WalletBalance {
   walletId  String   @id
-  balance   BigInt   @default(0)
+  balance   Decimal  @default(0) @db.Decimal(20, 2)
   updatedAt DateTime @updatedAt
 
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -139,7 +139,7 @@ model Transaction {
   userId        String
   walletId      String
   type          TransactionType
-  amount        BigInt
+  amount        Decimal         @db.Decimal(20, 2)
   description   String?
   subcategoryId String?
   occurredAt    DateTime        @default(now())
@@ -196,7 +196,7 @@ model RecurringTransaction {
   userId        String
   walletId      String
   type          RecurringType
-  amount        BigInt
+  amount        Decimal               @db.Decimal(20, 2)
   description   String?
   intervalValue Int
   intervalUnit  RecurringIntervalUnit
@@ -276,7 +276,7 @@ model AssetTransaction {
   type            AssetTransactionType
   quantity        Decimal              @db.Decimal(20, 8)
   pricePerUnitIdr Decimal              @db.Decimal(20, 2)
-  totalValueIdr   BigInt
+  totalValueIdr   Decimal              @db.Decimal(20, 2)
   description     String?
   occurredAt      DateTime             @default(now())
   createdAt       DateTime             @default(now())

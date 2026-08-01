@@ -8,6 +8,10 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { AssetType } from '@prisma/client';
+import {
+  IDR_AMOUNT_REGEX,
+  IDR_NON_NEGATIVE_AMOUNT_MESSAGE,
+} from '../../common/utils/money';
 
 export class CreateAssetDto {
   @IsEnum(AssetType)
@@ -38,10 +42,7 @@ export class CreateAssetDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\d+(\.\d{1,2})?$/, {
-    message:
-      'Buy price per unit must be a non-negative IDR amount with up to 2 decimals',
-  })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_NON_NEGATIVE_AMOUNT_MESSAGE })
   initialPricePerUnitIdr?: string;
 }
 
@@ -54,9 +55,6 @@ export class UpdateAssetDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\d+(\.\d{1,2})?$/, {
-    message:
-      'Price per unit must be a non-negative IDR amount with up to 2 decimals',
-  })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_NON_NEGATIVE_AMOUNT_MESSAGE })
   pricePerUnitIdr?: string;
 }

@@ -15,6 +15,8 @@ set -eu
 # Cron (daily at midnight):
 #   chmod +x scripts/install-backup-cron.sh
 #   ./scripts/install-backup-cron.sh
+#
+# Or add manually with crontab -e — see scripts/install-backup-cron.sh
 
 APP_DIR="${APP_DIR:-/opt/apps/fin-track-server}"
 RCLONE_REMOTE="${RCLONE_REMOTE:-gdrive:fin-track-server-backups}"
@@ -23,17 +25,24 @@ LOG_FILE="${LOG_FILE:-$APP_DIR/logs/backup.log}"
 mkdir -p "$(dirname "$LOG_FILE")"
 cd "$APP_DIR"
 
-if [ -f .env ]; then
-  # shellcheck disable=SC1091
-  set -a
-  . ./.env
-  set +a
-fi
+# Read only the vars this script needs — do not source the full .env (values like
+# RESEND_FROM_EMAIL=Name <email> break /bin/sh when dotted in).
+read_env_var() {
+  key="$1"
+  [ -f .env ] || return 0
+  grep -E "^${key}=" .env 2>/dev/null | head -n 1 | cut -d= -f2- | tr -d '\r'
+}
+
+_env_user="$(read_env_var POSTGRES_USER)"
+_env_db="$(read_env_var POSTGRES_DB)"
+[ -n "$_env_user" ] && POSTGRES_USER="$_env_user"
+[ -n "$_env_db" ] && POSTGRES_DB="$_env_db"
 
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
 POSTGRES_DB="${POSTGRES_DB:-finance_tracker}"
 DATE_LABEL="$(date +%d-%m-%Y)"
-FILENAME="fin-track-vps-${DATE_LABEL}.dump"
+TIME_LABEL="$(date +%H:%M)"
+FILENAME="fin-track-vps (${DATE_LABEL}) - (${TIME_LABEL}).dump"
 TMPFILE="$(mktemp /tmp/fin-track-vps-XXXXXX.dump)"
 REMOTE_DIR="${RCLONE_REMOTE%/}"
 REMOTE_PATH="${REMOTE_DIR}/${FILENAME}"

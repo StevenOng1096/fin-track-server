@@ -4,12 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { TransactionType } from '@prisma/client';
+import { Prisma, TransactionType } from '@prisma/client';
 import { BalanceService } from '../balance/balance.service';
 import {
   formatAmount,
   parseNonNegativeAmount,
   transactionDelta,
+  CURRENCY_IDR,
+  ZERO_IDR,
 } from '../common/utils/money';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWalletDto, ReorderWalletsDto, UpdateWalletDto } from './dto/wallet.dto';
@@ -22,8 +24,8 @@ import {
 const ACTIVITY_WINDOW_DAYS = 30;
 
 type WalletActivityTotals = {
-  income30d: bigint;
-  expense30d: bigint;
+  income30d: Prisma.Decimal;
+  expense30d: Prisma.Decimal;
 };
 
 @Injectable()
@@ -35,7 +37,7 @@ export class WalletsService {
 
   async create(userId: string, dto: CreateWalletDto) {
     const color = this.resolveColor(dto.color);
-    let initialBalance = 0n;
+    let initialBalance = ZERO_IDR;
 
     if (dto.initialBalance) {
       try {
@@ -65,7 +67,7 @@ export class WalletsService {
 
       await this.balanceService.initializeWallet(tx, wallet.id);
 
-      if (initialBalance > 0n) {
+      if (initialBalance.gt(0)) {
         const transaction = await tx.transaction.create({
           data: {
             userId,
@@ -91,7 +93,7 @@ export class WalletsService {
         wallet.createdAt,
         wallet.updatedAt,
         initialBalance,
-        { income30d: 0n, expense30d: 0n },
+        { income30d: ZERO_IDR, expense30d: ZERO_IDR },
       );
     });
   }
@@ -116,8 +118,11 @@ export class WalletsService {
         wallet.sortOrder,
         wallet.createdAt,
         wallet.updatedAt,
-        wallet.balance?.balance ?? 0n,
-        activityTotals.get(wallet.id) ?? { income30d: 0n, expense30d: 0n },
+        wallet.balance?.balance ?? ZERO_IDR,
+        activityTotals.get(wallet.id) ?? {
+          income30d: ZERO_IDR,
+          expense30d: ZERO_IDR,
+        },
       ),
     );
   }
@@ -141,8 +146,11 @@ export class WalletsService {
       wallet.sortOrder,
       wallet.createdAt,
       wallet.updatedAt,
-      wallet.balance?.balance ?? 0n,
-      activityTotals.get(walletId) ?? { income30d: 0n, expense30d: 0n },
+      wallet.balance?.balance ?? ZERO_IDR,
+      activityTotals.get(walletId) ?? {
+        income30d: ZERO_IDR,
+        expense30d: ZERO_IDR,
+      },
     );
   }
 
@@ -169,10 +177,10 @@ export class WalletsService {
       wallet.sortOrder,
       wallet.createdAt,
       wallet.updatedAt,
-      wallet.balance?.balance ?? 0n,
+      wallet.balance?.balance ?? ZERO_IDR,
       (await this.loadActivityTotals(userId, [walletId])).get(walletId) ?? {
-        income30d: 0n,
-        expense30d: 0n,
+        income30d: ZERO_IDR,
+        expense30d: ZERO_IDR,
       },
     );
   }
@@ -274,7 +282,7 @@ export class WalletsService {
     const totals = new Map<string, WalletActivityTotals>();
 
     for (const walletId of walletIds) {
-      totals.set(walletId, { income30d: 0n, expense30d: 0n });
+      totals.set(walletId, { income30d: ZERO_IDR, expense30d: ZERO_IDR });
     }
 
     if (walletIds.length === 0) {
@@ -298,7 +306,7 @@ export class WalletsService {
         continue;
       }
 
-      const sum = row._sum.amount ?? 0n;
+      const sum = row._sum.amount ?? ZERO_IDR;
       if (row.type === TransactionType.INCOME) {
         entry.income30d = sum;
       } else if (row.type === TransactionType.EXPENSE) {
@@ -316,7 +324,7 @@ export class WalletsService {
     sortOrder: number,
     createdAt: Date,
     updatedAt: Date,
-    balance: bigint,
+    balance: Prisma.Decimal,
     activity: WalletActivityTotals,
   ) {
     return {
@@ -327,7 +335,7 @@ export class WalletsService {
       balance: formatAmount(balance),
       income30d: formatAmount(activity.income30d),
       expense30d: formatAmount(activity.expense30d),
-      currency: 'IDR',
+      currency: CURRENCY_IDR,
       createdAt,
       updatedAt,
     };

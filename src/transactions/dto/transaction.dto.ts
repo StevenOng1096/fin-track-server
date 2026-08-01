@@ -11,6 +11,11 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { TransactionType } from '@prisma/client';
+import {
+  IDR_AMOUNT_REGEX,
+  IDR_NON_NEGATIVE_AMOUNT_MESSAGE,
+  IDR_POSITIVE_AMOUNT_MESSAGE,
+} from '../../common/utils/money';
 
 export class CreateTransactionDto {
   @IsUUID()
@@ -22,13 +27,13 @@ export class CreateTransactionDto {
   @ValidateIf((dto) => dto.type !== TransactionType.ADJUSTMENT)
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d+$/, { message: 'Amount must be a positive integer in IDR' })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_POSITIVE_AMOUNT_MESSAGE })
   amount?: string;
 
   @ValidateIf((dto) => dto.type === TransactionType.ADJUSTMENT)
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d+$/, { message: 'Target balance must be a non-negative integer in IDR' })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_NON_NEGATIVE_AMOUNT_MESSAGE })
   targetBalance?: string;
 
   @IsOptional()
@@ -57,7 +62,7 @@ export class UpdateTransactionDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\d+$/, { message: 'Amount must be a positive integer in IDR' })
+  @Matches(IDR_AMOUNT_REGEX, { message: IDR_POSITIVE_AMOUNT_MESSAGE })
   amount?: string;
 
   @IsOptional()
