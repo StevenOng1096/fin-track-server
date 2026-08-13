@@ -182,9 +182,10 @@ model TransactionSubcategory {
   sortOrder    Int                 @default(0)
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
-  user         User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category     TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category              TransactionCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
 
   @@index([categoryId, sortOrder])
   @@index([userId, categoryId])
@@ -198,16 +199,19 @@ model RecurringTransaction {
   type          RecurringType
   amount        Decimal               @db.Decimal(20, 2)
   description   String?
-  intervalValue Int
-  intervalUnit  RecurringIntervalUnit
+  subcategoryId String?
+  anchorDay     Int                   @default(1)
+  intervalValue Int                   @default(1)
+  intervalUnit  RecurringIntervalUnit @default(MONTH)
   nextDueAt     DateTime
   isActive      Boolean               @default(true)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
-  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wallet     Wallet               @relation(fields: [walletId], references: [id], onDelete: Restrict)
-  executions RecurringExecution[]
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet      Wallet                  @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  subcategory TransactionSubcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  executions  RecurringExecution[]
 
   @@index([userId, isActive])
   @@index([userId, isActive, nextDueAt])

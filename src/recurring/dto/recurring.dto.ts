@@ -1,20 +1,18 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsDateString,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
-import {
-  RecurringIntervalUnit,
-  RecurringType,
-} from '@prisma/client';
+import { RecurringType } from '@prisma/client';
 import {
   IDR_AMOUNT_REGEX,
   IDR_POSITIVE_AMOUNT_MESSAGE,
@@ -36,16 +34,17 @@ export class CreateRecurringDto {
   @MaxLength(255)
   description?: string;
 
+  /** Day of month (1–31) when payment is due each month. */
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  intervalValue: number;
+  @Max(31)
+  anchorDay: number;
 
-  @IsEnum(RecurringIntervalUnit)
-  intervalUnit: RecurringIntervalUnit;
-
-  @IsDateString()
-  nextDueAt: string;
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  subcategoryId?: string;
 }
 
 export class UpdateRecurringDto {
@@ -71,15 +70,13 @@ export class UpdateRecurringDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  intervalValue?: number;
+  @Max(31)
+  anchorDay?: number;
 
   @IsOptional()
-  @IsEnum(RecurringIntervalUnit)
-  intervalUnit?: RecurringIntervalUnit;
-
-  @IsOptional()
-  @IsDateString()
-  nextDueAt?: string;
+  @IsString()
+  @IsNotEmpty()
+  subcategoryId?: string | null;
 
   @IsOptional()
   @IsBoolean()
