@@ -66,6 +66,7 @@ export function computeInitialNextDueAt(
 /**
  * Next due date after a payment for the current scheduled cycle.
  * Always advances one calendar month from the scheduled due, not the pay date.
+ * Example: due 15 Jun, paid 13 Jun → next due 15 Jul.
  */
 export function computeNextMonthlyDueAfter(
   scheduledDue: Date,
@@ -111,6 +112,10 @@ export function formatDaysUntilDue(
 /** Earliest day before next due when manual pay/receive is allowed again after a payment. */
 export const RECURRING_EARLY_PAY_WINDOW_DAYS = 28;
 
+/**
+ * Whether the user can manually mark paid/received.
+ * First payment is always allowed; after that, block until within the window of next due.
+ */
 export function computeCanMarkPaid(
   recurring: { isActive: boolean; nextDueAt: Date },
   hasExecution: boolean,

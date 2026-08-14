@@ -132,7 +132,11 @@ export class RecurringService {
       subcategoryId = dto.subcategoryId
         ? await this.resolveSubcategory(userId, nextType, dto.subcategoryId)
         : null;
-    } else if (dto.type && dto.type !== existing.type && existing.subcategoryId) {
+    } else if (
+      dto.type &&
+      dto.type !== existing.type &&
+      existing.subcategoryId
+    ) {
       subcategoryId = await this.resolveSubcategory(
         userId,
         nextType,

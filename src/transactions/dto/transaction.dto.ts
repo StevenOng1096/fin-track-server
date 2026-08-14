@@ -115,5 +115,5 @@ export class ListTransactionsQueryDto {
 
   @IsOptional()
   @Type(() => Number)
-  limit?: number = 20;
+  limit?: number = 10;
 }
