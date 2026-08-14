@@ -1,30 +1,27 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
-import {
-  RecurringIntervalUnit,
-  RecurringType,
-} from '@prisma/client';
+import { RecurringType } from '@prisma/client';
 import {
   IDR_AMOUNT_REGEX,
   IDR_POSITIVE_AMOUNT_MESSAGE,
 } from '../../common/utils/money';
 
 export class CreateRecurringDto {
-  @IsUUID()
+  @IsUUID('4', { message: 'Please select a wallet' })
   walletId: string;
 
-  @IsEnum(RecurringType)
+  @IsEnum(RecurringType, { message: 'Please select expense or income' })
   type: RecurringType;
 
   @IsString()
@@ -33,28 +30,26 @@ export class CreateRecurringDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(255, { message: 'Description must be 255 characters or less' })
   description?: string;
 
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  intervalValue: number;
+  @IsInt({ message: 'Due day must be a whole number' })
+  @Min(1, { message: 'Due day must be between 1 and 31' })
+  @Max(31, { message: 'Due day must be between 1 and 31' })
+  anchorDay: number;
 
-  @IsEnum(RecurringIntervalUnit)
-  intervalUnit: RecurringIntervalUnit;
-
-  @IsDateString()
-  nextDueAt: string;
+  @IsUUID('4', { message: 'Please select a subcategory' })
+  subcategoryId: string;
 }
 
 export class UpdateRecurringDto {
   @IsOptional()
-  @IsUUID()
+  @IsUUID('4', { message: 'Please select a wallet' })
   walletId?: string;
 
   @IsOptional()
-  @IsEnum(RecurringType)
+  @IsEnum(RecurringType, { message: 'Please select expense or income' })
   type?: RecurringType;
 
   @IsOptional()
@@ -64,22 +59,19 @@ export class UpdateRecurringDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(255, { message: 'Description must be 255 characters or less' })
   description?: string;
 
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  intervalValue?: number;
+  @IsInt({ message: 'Due day must be a whole number' })
+  @Min(1, { message: 'Due day must be between 1 and 31' })
+  @Max(31, { message: 'Due day must be between 1 and 31' })
+  anchorDay?: number;
 
   @IsOptional()
-  @IsEnum(RecurringIntervalUnit)
-  intervalUnit?: RecurringIntervalUnit;
-
-  @IsOptional()
-  @IsDateString()
-  nextDueAt?: string;
+  @IsUUID('4', { message: 'Please select a valid subcategory' })
+  subcategoryId?: string | null;
 
   @IsOptional()
   @IsBoolean()

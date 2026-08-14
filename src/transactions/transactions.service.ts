@@ -426,6 +426,7 @@ export class TransactionsService {
       walletId: string;
       type: TransactionType;
       amount: Prisma.Decimal;
+      subcategoryId?: string | null;
       description?: string | null;
       occurredAt?: Date;
     },
@@ -438,6 +439,7 @@ export class TransactionsService {
         walletId: input.walletId,
         type: input.type,
         amount: input.amount,
+        subcategoryId: input.subcategoryId ?? null,
         description: input.description ?? null,
         occurredAt: input.occurredAt ?? new Date(),
       },
