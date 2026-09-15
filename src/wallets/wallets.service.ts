@@ -134,7 +134,7 @@ export class WalletsService {
     });
 
     if (!wallet) {
-      throw new NotFoundException('Wallet not found');
+      throw new NotFoundException("We couldn't find that wallet.");
     }
 
     const activityTotals = await this.loadActivityTotals(userId, [walletId]);
@@ -196,14 +196,14 @@ export class WalletsService {
 
     if (walletIds.length !== existingIds.length) {
       throw new BadRequestException(
-        'walletIds must include every wallet for this user',
+        'Please include all of your wallets when reordering.',
       );
     }
 
     const existingSet = new Set(existingIds);
     for (const walletId of walletIds) {
       if (!existingSet.has(walletId)) {
-        throw new BadRequestException('walletIds contains an unknown wallet');
+        throw new BadRequestException("One or more wallets couldn't be found.");
       }
     }
 
@@ -253,7 +253,7 @@ export class WalletsService {
     });
 
     if (!wallet) {
-      throw new NotFoundException('Wallet not found');
+      throw new NotFoundException("We couldn't find that wallet.");
     }
 
     return wallet;
@@ -265,7 +265,7 @@ export class WalletsService {
     }
 
     if (!isWalletColor(color)) {
-      throw new BadRequestException('Invalid wallet color.');
+      throw new BadRequestException('Please choose a valid wallet color.');
     }
 
     return color;

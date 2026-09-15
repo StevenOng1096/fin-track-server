@@ -192,7 +192,7 @@ export class AssetsService {
       });
 
       if (!asset) {
-        throw new NotFoundException('Asset not found');
+        throw new NotFoundException("We couldn't find that asset.");
       }
 
       const result = this.resolveTransactionChanges(asset, dto);
@@ -262,7 +262,7 @@ export class AssetsService {
     });
 
     if (!asset) {
-      throw new NotFoundException('Asset not found');
+      throw new NotFoundException("We couldn't find that asset.");
     }
 
     return asset;
@@ -302,7 +302,7 @@ export class AssetsService {
           unit: 'share',
         };
       default:
-        throw new BadRequestException('Unsupported asset type');
+        throw new BadRequestException("This asset type isn't supported yet.");
     }
   }
 
@@ -312,7 +312,9 @@ export class AssetsService {
   ) {
     if (dto.type === AssetTransactionType.ADJUSTMENT) {
       if (!dto.targetQuantity) {
-        throw new BadRequestException('Target quantity is required for adjustments');
+        throw new BadRequestException(
+          'Enter the quantity you want to hold after this adjustment.',
+        );
       }
 
       const targetQuantity = parseQuantity(dto.targetQuantity);
@@ -379,7 +381,7 @@ export class AssetsService {
       };
     }
 
-    throw new BadRequestException('Unsupported transaction type');
+    throw new BadRequestException("This transaction type isn't supported.");
   }
 
   private toAssetResponse(asset: Asset) {

@@ -14,7 +14,7 @@ import {
 } from '../../common/utils/money';
 
 export class CreateAssetDto {
-  @IsEnum(AssetType)
+  @IsEnum(AssetType, { message: 'Please select an asset type.' })
   type: AssetType;
 
   @IsOptional()
@@ -36,7 +36,7 @@ export class CreateAssetDto {
   @IsOptional()
   @IsString()
   @Matches(/^\d+(\.\d+)?$/, {
-    message: 'Initial quantity must be a non-negative decimal',
+    message: 'Enter a valid quantity (0 or more).',
   })
   initialQuantity?: string;
 

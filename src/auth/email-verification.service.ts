@@ -14,7 +14,11 @@ export class EmailVerificationService {
     private readonly rateLimit: VerificationRateLimitService,
   ) {}
 
-  async resend(email: string, callbackURL: string, headers: Headers): Promise<void> {
+  async resend(
+    email: string,
+    callbackURL: string,
+    headers: Headers,
+  ): Promise<void> {
     const normalizedEmail = email.trim().toLowerCase();
 
     const user = await this.prisma.user.findFirst({

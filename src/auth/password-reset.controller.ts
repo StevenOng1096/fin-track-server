@@ -13,10 +13,7 @@ export class PasswordResetController {
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 3_600_000 } })
   @Post('request')
-  async request(
-    @Body() dto: RequestPasswordResetDto,
-    @Req() request: Request,
-  ) {
+  async request(@Body() dto: RequestPasswordResetDto, @Req() request: Request) {
     await this.passwordResetService.requestReset(
       dto.email,
       dto.redirectTo,

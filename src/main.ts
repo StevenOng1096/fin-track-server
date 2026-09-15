@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { BigIntSerializerInterceptor } from './common/interceptors/bigint-serializer.interceptor';
 import { getAllowedOrigins } from './common/utils/cors';
+import { formatValidationErrors } from './common/utils/validation-errors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -22,6 +23,8 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors) =>
+        new BadRequestException(formatValidationErrors(errors)),
     }),
   );
 

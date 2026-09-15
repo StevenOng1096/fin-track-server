@@ -4,9 +4,9 @@ export const IDR_DECIMALS = 2;
 export const IDR_AMOUNT_REGEX = /^\d+(\.\d+)?$/;
 export const IDR_POSITIVE_AMOUNT_REGEX = /^\d+(\.\d{1,2})?$/;
 export const IDR_POSITIVE_AMOUNT_MESSAGE =
-  'Amount must be a positive IDR value with up to 2 decimals';
+  'Enter an amount greater than 0 (up to 2 decimal places).';
 export const IDR_NON_NEGATIVE_AMOUNT_MESSAGE =
-  'Amount must be a non-negative IDR value with up to 2 decimals';
+  'Enter a valid amount (0 or more, up to 2 decimal places).';
 export const CURRENCY_IDR = 'IDR';
 
 export const ZERO_IDR = new Prisma.Decimal(0);

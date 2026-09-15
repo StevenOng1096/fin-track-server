@@ -19,14 +19,14 @@ import {
 } from '../../common/utils/money';
 
 export class CreateWalletDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
+  @IsString({ message: 'Wallet name must be text.' })
+  @IsNotEmpty({ message: 'Wallet name is required.' })
+  @MaxLength(100, { message: 'Wallet name must be 100 characters or less.' })
   name: string;
 
   @IsOptional()
   @IsString()
-  @IsIn(WALLET_COLOR_KEYS)
+  @IsIn(WALLET_COLOR_KEYS, { message: 'Please choose a valid wallet color.' })
   color?: string;
 
   @IsOptional()
@@ -38,20 +38,20 @@ export class CreateWalletDto {
 export class UpdateWalletDto {
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
+  @IsNotEmpty({ message: 'Wallet name is required.' })
+  @MaxLength(100, { message: 'Wallet name must be 100 characters or less.' })
   name?: string;
 
   @IsOptional()
   @IsString()
-  @IsIn(WALLET_COLOR_KEYS)
+  @IsIn(WALLET_COLOR_KEYS, { message: 'Please choose a valid wallet color.' })
   color?: string;
 }
 
 export class ReorderWalletsDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsArray({ message: 'Wallet list is required.' })
+  @ArrayMinSize(1, { message: 'Select at least one wallet to reorder.' })
+  @IsUUID('4', { each: true, message: 'One or more wallet selections are invalid.' })
   walletIds: string[];
 }
 

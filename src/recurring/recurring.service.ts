@@ -213,11 +213,13 @@ export class RecurringService {
       });
 
       if (!recurring) {
-        throw new NotFoundException('Recurring transaction not found');
+        throw new NotFoundException("We couldn't find that recurring item.");
       }
 
       if (!recurring.isActive) {
-        throw new BadRequestException('Recurring transaction is inactive');
+        throw new BadRequestException(
+          'This recurring item is turned off. Turn it back on to mark it paid.',
+        );
       }
 
       const priorExecution = await tx.recurringExecution.findFirst({
@@ -313,7 +315,7 @@ export class RecurringService {
     });
 
     if (!subcategory) {
-      throw new NotFoundException('Subcategory not found');
+      throw new NotFoundException("We couldn't find that category.");
     }
 
     const expectedFlow =
@@ -335,7 +337,7 @@ export class RecurringService {
     });
 
     if (!recurring) {
-      throw new NotFoundException('Recurring transaction not found');
+      throw new NotFoundException("We couldn't find that recurring item.");
     }
 
     return recurring;

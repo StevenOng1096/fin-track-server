@@ -18,10 +18,12 @@ import {
 } from '../../common/utils/money';
 
 export class CreateTransactionDto {
-  @IsUUID()
+  @IsUUID('4', { message: 'Please select a wallet.' })
   walletId: string;
 
-  @IsEnum(TransactionType)
+  @IsEnum(TransactionType, {
+    message: 'Please select income, expense, or adjustment.',
+  })
   type: TransactionType;
 
   @ValidateIf((dto) => dto.type !== TransactionType.ADJUSTMENT)
@@ -38,11 +40,11 @@ export class CreateTransactionDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(255, { message: 'Description must be 255 characters or less.' })
   description?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: 'Please enter a valid date.' })
   occurredAt?: string;
 
   @IsOptional()
@@ -53,11 +55,13 @@ export class CreateTransactionDto {
 
 export class UpdateTransactionDto {
   @IsOptional()
-  @IsUUID()
+  @IsUUID('4', { message: 'Please select a wallet.' })
   walletId?: string;
 
   @IsOptional()
-  @IsEnum(TransactionType)
+  @IsEnum(TransactionType, {
+    message: 'Please select income, expense, or adjustment.',
+  })
   type?: TransactionType;
 
   @IsOptional()
@@ -67,11 +71,11 @@ export class UpdateTransactionDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(255, { message: 'Description must be 255 characters or less.' })
   description?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: 'Please enter a valid date.' })
   occurredAt?: string;
 
   @IsOptional()
@@ -85,10 +89,10 @@ export class PeriodSummaryQueryDto {
   @IsUUID()
   walletId?: string;
 
-  @IsDateString()
+  @IsDateString({}, { message: 'Please enter a valid start date.' })
   fromDate: string;
 
-  @IsDateString()
+  @IsDateString({}, { message: 'Please enter a valid end date.' })
   toDate: string;
 }
 
@@ -102,11 +106,11 @@ export class ListTransactionsQueryDto {
   type?: TransactionType;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: 'Please enter a valid start date.' })
   fromDate?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: 'Please enter a valid end date.' })
   toDate?: string;
 
   @IsOptional()

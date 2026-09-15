@@ -16,7 +16,9 @@ import {
 } from '../../common/utils/money';
 
 export class CreateAssetTransactionDto {
-  @IsEnum(AssetTransactionType)
+  @IsEnum(AssetTransactionType, {
+    message: 'Please select buy, sell, or adjust.',
+  })
   type: AssetTransactionType;
 
   @ValidateIf((dto) => dto.type !== AssetTransactionType.ADJUSTMENT)
@@ -39,11 +41,11 @@ export class CreateAssetTransactionDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(255, { message: 'Description must be 255 characters or less.' })
   description?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: 'Please enter a valid date.' })
   occurredAt?: string;
 }
 

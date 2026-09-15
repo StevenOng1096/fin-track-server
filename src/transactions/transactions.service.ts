@@ -117,7 +117,7 @@ export class TransactionsService {
   async getPeriodSummary(userId: string, query: PeriodSummaryQueryDto) {
     const occurredAt = this.buildOccurredAtFilter(query.fromDate, query.toDate);
     if (!occurredAt) {
-      throw new BadRequestException('Both fromDate and toDate are required');
+      throw new BadRequestException('Please select both a start date and an end date.');
     }
 
     const where: Prisma.TransactionWhereInput = {
@@ -307,7 +307,7 @@ export class TransactionsService {
     });
 
     if (!transaction) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException("We couldn't find that transaction.");
     }
 
     return this.toResponse(transaction);
@@ -324,7 +324,7 @@ export class TransactionsService {
       });
 
       if (!existing) {
-        throw new NotFoundException('Transaction not found');
+        throw new NotFoundException("We couldn't find that transaction.");
       }
 
       if (
@@ -408,7 +408,7 @@ export class TransactionsService {
       });
 
       if (!existing) {
-        throw new NotFoundException('Transaction not found');
+        throw new NotFoundException("We couldn't find that transaction.");
       }
 
       const delta = transactionDelta(existing.type, existing.amount);
@@ -456,7 +456,7 @@ export class TransactionsService {
     }
 
     if (!fromDate || !toDate) {
-      throw new BadRequestException('Both fromDate and toDate are required');
+      throw new BadRequestException('Please select both a start date and an end date.');
     }
 
     const from = new Date(fromDate);
@@ -467,7 +467,7 @@ export class TransactionsService {
     }
 
     if (from > to) {
-      throw new BadRequestException('fromDate must be before or equal to toDate');
+      throw new BadRequestException('Start date must be on or before the end date.');
     }
 
     const rangeDays = Math.floor((to.getTime() - from.getTime()) / MS_PER_DAY) + 1;
@@ -504,7 +504,7 @@ export class TransactionsService {
   ): Promise<{ amount: Prisma.Decimal; delta: Prisma.Decimal }> {
     if (type === TransactionType.ADJUSTMENT) {
       if (!targetBalanceInput) {
-        throw new BadRequestException('Target balance is required for adjustments');
+        throw new BadRequestException('Enter the balance you want this wallet to have.');
       }
 
       const targetBalance = parseNonNegativeAmount(targetBalanceInput);
@@ -533,7 +533,7 @@ export class TransactionsService {
     }
 
     if (!amountInput) {
-      throw new BadRequestException('Amount is required');
+      throw new BadRequestException('Enter an amount.');
     }
 
     const amount = parseAmount(amountInput);
@@ -591,7 +591,7 @@ export class TransactionsService {
     });
 
     if (!subcategory) {
-      throw new NotFoundException('Subcategory not found');
+      throw new NotFoundException("We couldn't find that category.");
     }
 
     const expectedFlow =

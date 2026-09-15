@@ -180,7 +180,7 @@ export class CategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException("We couldn't find that category.");
     }
 
     const duplicate = await this.prisma.transactionSubcategory.findFirst({
@@ -306,10 +306,12 @@ export class CategoriesService {
       });
 
       if (!exists) {
-        throw new NotFoundException('Category not found');
+        throw new NotFoundException("We couldn't find that category.");
       }
 
-      throw new BadRequestException('Default categories cannot be changed');
+      throw new BadRequestException(
+        "Built-in categories can't be edited. Create your own instead.",
+      );
     }
 
     return category;
@@ -334,10 +336,12 @@ export class CategoriesService {
       });
 
       if (!exists) {
-        throw new NotFoundException('Subcategory not found');
+        throw new NotFoundException("We couldn't find that subcategory.");
       }
 
-      throw new BadRequestException('Default subcategories cannot be changed');
+      throw new BadRequestException(
+        "Built-in subcategories can't be edited. Create your own instead.",
+      );
     }
 
     return subcategory;
