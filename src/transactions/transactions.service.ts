@@ -15,6 +15,7 @@ import {
   toIdrMoneyFields,
   ZERO_IDR,
 } from '../common/utils/money';
+import { resolveTransactionOccurredAt } from '../common/utils/occurred-at';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletsService } from '../wallets/wallets.service';
 import {
@@ -68,7 +69,7 @@ export class TransactionsService {
           amount,
           subcategoryId,
           description: dto.description?.trim() || null,
-          occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : new Date(),
+          occurredAt: resolveTransactionOccurredAt(dto.occurredAt),
         },
         include: transactionInclude,
       });
@@ -390,9 +391,10 @@ export class TransactionsService {
             dto.description !== undefined
               ? dto.description.trim() || null
               : existing.description,
-          occurredAt: dto.occurredAt
-            ? new Date(dto.occurredAt)
-            : existing.occurredAt,
+          occurredAt:
+            dto.occurredAt !== undefined
+              ? resolveTransactionOccurredAt(dto.occurredAt)
+              : existing.occurredAt,
         },
         include: transactionInclude,
       });
