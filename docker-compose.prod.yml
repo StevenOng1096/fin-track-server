@@ -1,0 +1,13 @@
+# Production overlay: run a pre-built image from GHCR (no `docker compose build` on VPS).
+#
+# Setup:
+#   1. GitHub Actions publishes: ghcr.io/<owner>/finance-tracker-server:latest
+#   2. In .env set SERVER_IMAGE=ghcr.io/<owner>/finance-tracker-server:latest
+#   3. docker login ghcr.io  (PAT with read:packages if the package is private)
+#   4. docker compose -f docker-compose.yml -f docker-compose.prod.yml pull server
+#   5. docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+
+services:
+  server:
+    image: ${SERVER_IMAGE:?Set SERVER_IMAGE in .env — e.g. ghcr.io/owner/finance-tracker-server:latest}
+    pull_policy: always

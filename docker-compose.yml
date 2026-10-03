@@ -20,6 +20,7 @@ services:
       start_period: 10s
 
   server:
+    image: ${SERVER_IMAGE:-finance-tracker-server:local}
     build:
       context: .
       dockerfile: Dockerfile
